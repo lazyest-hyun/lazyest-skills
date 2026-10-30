@@ -1,0 +1,6 @@
+interface:
+  display_name: "Ship Small"
+  short_description: "Build a working slice and verify it within the deadline"
+  default_prompt: "Use $ship-small to implement the smallest working slice and show acceptance evidence."
+policy:
+  allow_implicit_invocation: true
