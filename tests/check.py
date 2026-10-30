@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import sys
 import tempfile
+from unittest import mock
 
 sys.dont_write_bytecode = True
 
@@ -36,12 +37,15 @@ with tempfile.TemporaryDirectory() as directory:
     assert guide.count('<!-- lazyest-skill-discovery:start -->') == 1
     assert (installed / 'SKILL.md').read_bytes() == (skill / 'SKILL.md').read_bytes()
     assert len(list(installed.rglob('*.md'))) == len(list(skill.rglob('*.md')))
+    (installed / 'SKILL.md').write_text('Existing user-modified skill; preserve it.\n')
     try:
         module.install(directory)
     except FileExistsError:
         pass
     else:
         raise AssertionError('Existing install was overwritten')
+    assert (installed / 'SKILL.md').read_text() == 'Existing user-modified skill; preserve it.\n'
+    assert (Path(directory) / 'AGENTS.md').read_text() == guide
 with tempfile.TemporaryDirectory() as directory:
     project = Path(directory) / 'project'
     outside = Path(directory) / 'outside'
@@ -58,4 +62,57 @@ with tempfile.TemporaryDirectory() as directory:
 with tempfile.TemporaryDirectory() as directory:
     module.install(directory, project_guide=False)
     assert not (Path(directory) / 'AGENTS.md').exists()
-print('PASS: structure, relative links, bounded core, secret-pattern scan, install and overwrite refusal')
+with tempfile.TemporaryDirectory() as directory:
+    project = Path(directory)
+    guide = project / 'AGENTS.md'
+    original = b'# Existing instructions\nKeep this file unchanged on failure.\n'
+    guide.write_bytes(original)
+    guide.chmod(0o640)
+    target = project / '.agents' / 'skills' / 'ship-small'
+    with mock.patch.object(module.os, 'replace', side_effect=PermissionError('injected guide replacement failure')):
+        try:
+            module.install(project)
+        except PermissionError:
+            pass
+        else:
+            raise AssertionError('Injected write failure did not propagate')
+    assert guide.read_bytes() == original
+    assert guide.stat().st_mode & 0o777 == 0o640
+    assert not target.exists()
+    assert not list(project.glob('.lazyest-guide-*'))
+    module.install(project)
+    assert (target / 'SKILL.md').is_file()
+    assert guide.read_bytes().startswith(original)
+with tempfile.TemporaryDirectory() as directory:
+    project = Path(directory)
+    guide = project / 'AGENTS.md'
+    guide.write_text('# Read-only instructions\n')
+    guide.chmod(0o440)
+    target = project / '.agents' / 'skills' / 'ship-small'
+    try:
+        module.install(project)
+    except PermissionError:
+        pass
+    else:
+        raise AssertionError('Read-only project guide was replaced')
+    assert guide.read_text() == '# Read-only instructions\n'
+    assert guide.stat().st_mode & 0o777 == 0o440
+    assert not target.exists()
+with tempfile.TemporaryDirectory() as directory:
+    project = Path(directory)
+    guide = project / 'AGENTS.md'
+    guide.write_text('# Original\n')
+    target = project / '.agents' / 'skills' / 'ship-small'
+    with mock.patch.object(module.os, 'replace', side_effect=PermissionError('injected guide failure')), \
+         mock.patch.object(module.shutil, 'rmtree', side_effect=PermissionError('injected rollback failure')):
+        try:
+            module.install(project)
+        except RuntimeError as error:
+            assert 'partial installation remains' in str(error)
+            assert str(target) in str(error)
+        else:
+            raise AssertionError('Rollback failure was not reported')
+    assert target.is_dir()
+    assert guide.read_text() == '# Original\n'
+    assert not list(project.glob('.lazyest-guide-*'))
+print('PASS: structure, links, secret scan, install, overwrite refusal, atomic guide failure rollback and retry, partial-state reporting')
