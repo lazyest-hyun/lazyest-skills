@@ -27,7 +27,7 @@ for entry in objects:
     count += 1
     data = subprocess.check_output(['git', '-C', str(root), 'cat-file', 'blob', object_id])
     name = Path(path).name
-    if (name.startswith('.env') or Path(path).suffix.lower() in {'.pdf', '.pem', '.key', '.p12'}
+    if (name.startswith('.env') or Path(path).suffix.lower() in {'.pdf', '.pem', '.key', '.p12', '.sqlite', '.db'}
             or any(pattern.search(data) for pattern in patterns)):
         failures.append((object_id, path))
 if not count:

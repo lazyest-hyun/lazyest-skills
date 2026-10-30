@@ -26,6 +26,7 @@
 | [공개 행사 소개](https://skhynix-hackathon.com/ai-2026) | 현장 과제와 작동하는 결과물을 강조. 실제 문제·배점·개인 응시 시간·세부 허용 범위를 추론하지 않음. |
 | [Cofa](https://verify.getcofa.com/en) | 산출물과 대화·도구 사용·검증 기록을 함께 본다는 공개 설명. 짧고 사실적인 의사결정 증거를 권장. |
 | [Cofa Probe](https://verify.getcofa.com/en/probe) | 정해진 환경과 조건에서 과정·산출물을 다룸. 기록을 조작하거나 사후 답안을 생성하는 기능은 만들지 않음. |
+| [Cofa 공개 작업환경 mock](https://www.getcofa.com/brochure-v2/workspace-mock.html) | 주문 재시도 중복·결제 실패 복구·API 계약 유지라는 공개 소개용 주제를 확인. 이를 바탕으로 별도 합성 starter를 작성했으며 실제 시험 문제·공식 starter로 주장하지 않음. 동시성·재시작은 자체 확장 검사. |
 
 ## 구조 선택과 한계
 

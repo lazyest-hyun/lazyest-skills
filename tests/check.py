@@ -28,7 +28,12 @@ spec = importlib.util.spec_from_file_location('install', root / 'scripts' / 'ins
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 with tempfile.TemporaryDirectory() as directory:
+    original = '# Existing project instruction\nPreserve this exact content.\n'
+    (Path(directory) / 'AGENTS.md').write_text(original)
     installed = module.install(directory)
+    guide = (Path(directory) / 'AGENTS.md').read_text()
+    assert guide.startswith(original)
+    assert guide.count('<!-- lazyest-skill-discovery:start -->') == 1
     assert (installed / 'SKILL.md').read_bytes() == (skill / 'SKILL.md').read_bytes()
     assert len(list(installed.rglob('*.md'))) == len(list(skill.rglob('*.md')))
     try:
@@ -50,4 +55,7 @@ with tempfile.TemporaryDirectory() as directory:
     else:
         raise AssertionError('Symlinked parent accepted')
     assert not list(outside.iterdir())
+with tempfile.TemporaryDirectory() as directory:
+    module.install(directory, project_guide=False)
+    assert not (Path(directory) / 'AGENTS.md').exists()
 print('PASS: structure, relative links, bounded core, secret-pattern scan, install and overwrite refusal')
